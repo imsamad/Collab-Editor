@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Collaborative Text Editor</title>
+    <!-- Add Quill.js stylesheet -->
+    <link
+      href="https://cdn.quilljs.com/1.3.6/quill.snow.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="editor"></div>
+
+    <!-- Add Socket.io library -->
+    <script src="/socket.io/socket.io.js"></script>
+    <!-- Add Quill.js library -->
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        // Initialize Socket.io client
+        const socket = io();
+
+        // Initialize Quill editor
+        const editorContainer = document.getElementById("editor");
+        const quill = new Quill(editorContainer, {
+          theme: "snow",
+        });
+
+        // Variable to track the previous text content
+        let prevText = quill.getContents();
+
+        // Event when the content of the editor changes
+        quill.on("text-change", (delta, oldDelta, source) => {
+          if (source === "user") {
+            console.log({ delta, oldDelta });
+            // Get the user's operation from the text change event
+            const userOperation = quill.getContents().diff(prevText);
+            console.log(userOperation);
+            // Send the user's operation to the server
+            socket.emit("operation", delta.ops[0]);
+
+            // Update the previous text content for the next change event
+            prevText = quill.getContents();
+          }
+        });
+
+        // Event when the server broadcasts an operation to apply
+        socket.on("operation", (operation) => {
+          // Apply the incoming operation to the editor
+          quill.updateContents(operation);
+        });
+      });
+    </script>
+  </body>
+</html>
